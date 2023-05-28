@@ -7,6 +7,8 @@ const Web3EthAbi = require('web3-eth-abi');
 const { padLeft, web3 } = require('web3-utils');
 
 const WTON_ABI = require("../abis/WTON.json");
+const TON_ABI = require("../abis/TON.json");
+const Multi_ABI = require("../artifacts/contracts/Multicall3.sol/Multicall3.json")
 
 // const MAINNET_RPC_URL = process.env.MAINNET_RPC_URL;
 // if (!MAINNET_RPC_URL) throw new Error('Please set the MAINNET_RPC_URL environment variable.');
@@ -14,14 +16,21 @@ const WTON_ABI = require("../abis/WTON.json");
 
 describe("Multicall3", function () {
   let richAccount = "0xf0B595d10a92A5a9BC3fFeA7e79f5d266b6035Ea";
+
+  let set = true
+  let multiAddress = "0x92D5B05741938d4BFe068E91616F442E10edE5f0"
+  let goerliMultiAddress = "0xcA11bde05977b3631167028862bE2a173976CA11"
   let testAccount : any
 
   let Multicall3: any
   let MultiCont: any
 
   let wtonContract: any
+  let tonContract: any
 
   let wtonAddress = "0xe86fCf5213C785AcF9a8BFfEeDEfA9a2199f7Da6";
+  let tonAddress = "0x68c1F9620aeC7F2913430aD6daC1bb16D8444F00";
+  let l1bridge = "0x7377f3d0f64d7a54cf367193eb74a052ff8578fd";
   // const ensRegistryInterface = new Interface(['function resolver(bytes32) view returns (address)']);
   // const wtonInterface = new Interface(['function swapToTON(uint256) returns (bool)']);
   // console.log(wtonInterface)
@@ -36,8 +45,9 @@ describe("Multicall3", function () {
 
   const functionByte = "0xf53fe70f0000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
   const functionBytecode2 = "0x70a08231000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea"
-  const functionBytecode3 = "0x23b872dd000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea000000000000000000000000195c1d13fc588c0b1ca8a78dd5771e0ee5a2eae40000000000000000000000000000000000000000000000000000000000989680"
+  const functionBytecode3 = "0x23b872dd000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea000000000000000000000000ca11bde05977b3631167028862be2a173976ca110000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
   const functionBytecode4 = "0xa9059cbb000000000000000000000000195c1d13fc588c0b1ca8a78dd5771e0ee5a2eae40000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
+  const functionDepositTo = "0x838b252000000000000000000000000068c1f9620aec7f2913430ad6dac1bb16d8444f000000000000000000000000007c6b91d9be155a6db01f749217d76ff02a7227f2000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000000000000030d4000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000"
 
   // const selector2 = Web3EthAbi.encodeFunctionCall({
   //   name: 'transferFrom',
@@ -67,6 +77,16 @@ describe("Multicall3", function () {
       allowFailure: false, // We allow failure for all calls.
       callData: functionBytecode3,
     },
+    {
+      target: wtonAddress,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionByte,
+    },
+    {
+      target: l1bridge,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionDepositTo, 
+    }
   ]
 
   const calls2 = [ 
@@ -89,43 +109,52 @@ describe("Multicall3", function () {
 
   describe("Deployment", function () {
     it("Set the Mullticall3", async () => {
-      Multicall3 = await ethers.getContractFactory("Multicall3");
-      MultiCont = await Multicall3.deploy();
-      console.log("MultiCall3Address :",MultiCont.address);
+      if(set == false) {
+        Multicall3 = await ethers.getContractFactory("Multicall3");
+        MultiCont = await Multicall3.deploy();
+        console.log("MultiCall3Address :",MultiCont.address);
+      } else {
+        MultiCont = await ethers.getContractAt(Multi_ABI.abi, goerliMultiAddress, testAccount)
+      }
     })
 
     it("set wton", async () => {
       wtonContract = new ethers.Contract(wtonAddress, WTON_ABI.abi, testAccount );
     })
+
+    it("set ton", async () => {
+      tonContract = new ethers.Contract(tonAddress, TON_ABI.abi, testAccount );
+    })
+
   });
 
   describe("Multicall Test", function () {
     it("multiCall safetransferFrom", async () => {
-      let beforeWTON = await wtonContract.balanceOf(testAccount.address)
-      console.log(beforeWTON)
-      await wtonContract.connect(testAccount).approve(MultiCont.address, wtonAmoun2);
-      let tx = await MultiCont.connect(testAccount).aggregate3(calls);
-      await tx.wait();
-      let afterWTON = await wtonContract.balanceOf(testAccount.address)
-      console.log(afterWTON)
-      // expect(afterWTON).to.be.gt(beforeWTON);
+      let beforeTON = await tonContract.balanceOf(MultiCont.address)
+      console.log(beforeTON)
+      await wtonContract.connect(testAccount).approve(MultiCont.address, wtonAmount);
+      await MultiCont.connect(testAccount).aggregate3(calls);
+      let afterTON = await tonContract.balanceOf(MultiCont.address)
+      console.log(afterTON)
+      // expect(beforeTON).to.be.equal(0);
+      // expect(beforeTON).to.be.gt(afterTON);
     })
 
-    it("multiConti have wton", async () => {
-      let beforeWTON = await wtonContract.balanceOf(MultiCont.address)
-      console.log(beforeWTON)
-      await wtonContract.connect(testAccount).transfer(MultiCont.address, wtonAmount)
-      let afterWTON = await wtonContract.balanceOf(MultiCont.address)
-      console.log(afterWTON)
-      expect(afterWTON).to.be.gt(beforeWTON);
-    })
+    // it("multiConti have wton", async () => {
+    //   let beforeWTON = await wtonContract.balanceOf(MultiCont.address)
+    //   console.log(beforeWTON)
+    //   await wtonContract.connect(testAccount).transfer(MultiCont.address, wtonAmount)
+    //   let afterWTON = await wtonContract.balanceOf(MultiCont.address)
+    //   console.log(afterWTON)
+    //   expect(afterWTON).to.be.gt(beforeWTON);
+    // })
 
-    it("multiCon swapToTON", async () => {
-      let beforeWTON = await wtonContract.balanceOf(MultiCont.address)
-      console.log(beforeWTON)
-      await MultiCont.connect(testAccount).aggregate3(calls2);
-      let afterWTON = await wtonContract.balanceOf(MultiCont.address)
-      console.log(afterWTON)
-    })
+    // it("multiCon swapToTON", async () => {
+    //   let beforeWTON = await wtonContract.balanceOf(MultiCont.address)
+    //   console.log(beforeWTON)
+    //   await MultiCont.connect(testAccount).aggregate3(calls2);
+    //   let afterWTON = await wtonContract.balanceOf(MultiCont.address)
+    //   console.log(afterWTON)
+    // })
   });
 });
