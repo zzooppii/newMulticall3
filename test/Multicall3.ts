@@ -42,12 +42,27 @@ describe("Multicall3", function () {
   // const data1 = padLeft(wtonAmount.toHexString(), 64);
   const functionBytecode1 = selector1.concat(data1);
   console.log(functionBytecode1)
-
+  
+  //swapToTON
   const functionByte = "0xf53fe70f0000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
+
+  //balanceOf
   const functionBytecode2 = "0x70a08231000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea"
+
+  //transferFrom
   const functionBytecode3 = "0x23b872dd000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea000000000000000000000000ca11bde05977b3631167028862be2a173976ca110000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
+
+  //transfer
   const functionBytecode4 = "0xa9059cbb000000000000000000000000195c1d13fc588c0b1ca8a78dd5771e0ee5a2eae40000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
+  
+  //depositERC20To
   const functionDepositTo = "0x838b252000000000000000000000000068c1f9620aec7f2913430ad6dac1bb16d8444f000000000000000000000000007c6b91d9be155a6db01f749217d76ff02a7227f2000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea0000000000000000000000000000000000000000000000000de0b6b3a76400000000000000000000000000000000000000000000000000000000000000030d4000000000000000000000000000000000000000000000000000000000000000c000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000"
+
+  //approve
+  const functionApprove = "0x095ea7b3000000000000000000000000ca11bde05977b3631167028862be2a173976ca110000000000000000000000000000000000000000033b2e3c9fd0803ce8000000"
+
+  //depositERC20To2
+  const functionDepositToGas2 = "0x838b252000000000000000000000000068c1f9620aec7f2913430ad6dac1bb16d8444f000000000000000000000000007c6b91d9be155a6db01f749217d76ff02a7227f2000000000000000000000000f0b595d10a92a5a9bc3ffea7e79f5d266b6035ea0000000000000000000000000000000000000000000000000de0b6b3a7640000000000000000000000000000000000000000000000000000000000000013d62000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000"
 
   // const selector2 = Web3EthAbi.encodeFunctionCall({
   //   name: 'transferFrom',
@@ -89,13 +104,57 @@ describe("Multicall3", function () {
     }
   ]
 
+  /*
+    //불가능
+    1.approve
+    2.transferFrom
+    3.swapToTON
+  */
   const calls2 = [ 
     {
       target: wtonAddress,
       allowFailure: false, // We allow failure for all calls.
-      callData: functionByte,
+      callData: functionApprove,
     },
+    {
+      target: wtonAddress,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionBytecode3,
+    },
+    {
+      target: wtonAddress,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionByte,
+    }
   ]
+
+  /*
+    //미리 approve받고 실행
+    1.transferFrom
+    2.swapToTON
+  */
+  const calls3 = [ 
+    {
+      target: wtonAddress,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionBytecode3,
+    },
+    {
+      target: wtonAddress,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionByte,
+    }
+  ]
+
+  const call4 = [
+    {
+      target: l1bridge,
+      allowFailure: false, // We allow failure for all calls.
+      callData: functionDepositToGas2,
+    }
+  ]
+
+    
   
 
   before("account setting",async () => {
@@ -129,16 +188,16 @@ describe("Multicall3", function () {
   });
 
   describe("Multicall Test", function () {
-    it("multiCall safetransferFrom", async () => {
-      let beforeTON = await tonContract.balanceOf(MultiCont.address)
-      console.log(beforeTON)
-      await wtonContract.connect(testAccount).approve(MultiCont.address, wtonAmount);
-      await MultiCont.connect(testAccount).aggregate3(calls);
-      let afterTON = await tonContract.balanceOf(MultiCont.address)
-      console.log(afterTON)
-      // expect(beforeTON).to.be.equal(0);
-      // expect(beforeTON).to.be.gt(afterTON);
-    })
+    // it("multiCall safetransferFrom", async () => {
+    //   let beforeTON = await tonContract.balanceOf(MultiCont.address)
+    //   console.log(beforeTON)
+    //   await wtonContract.connect(testAccount).approve(MultiCont.address, wtonAmount);
+    //   await MultiCont.connect(testAccount).aggregate3(calls);
+    //   let afterTON = await tonContract.balanceOf(MultiCont.address)
+    //   console.log(afterTON)
+    //   expect(beforeTON).to.be.equal(0);
+    //   expect(beforeTON).to.be.gt(afterTON);
+    // })
 
     // it("multiConti have wton", async () => {
     //   let beforeWTON = await wtonContract.balanceOf(MultiCont.address)
@@ -156,5 +215,51 @@ describe("Multicall3", function () {
     //   let afterWTON = await wtonContract.balanceOf(MultiCont.address)
     //   console.log(afterWTON)
     // })
+
+    // it("MultiCall Test (approve, transferFrom, swapToTON", async () => {
+    //   let beforeWTON = await wtonContract.balanceOf(testAccount.address)
+    //   console.log(beforeWTON)
+    //   let beforeTON = await tonContract.balanceOf(MultiCont.address)
+    //   console.log(beforeTON)
+    //   await MultiCont.connect(testAccount).aggregate3(calls2);
+    //   let afterWTON = await wtonContract.balanceOf(testAccount.address)
+    //   console.log(afterWTON)
+    //   let afterTON = await tonContract.balanceOf(MultiCont.address)
+    //   console.log(afterTON)
+    // })
+
+    // it("Multical Test (transferFrom, swapToTON)", async () => {
+    //   let beforeWTON = await wtonContract.balanceOf(testAccount.address)
+    //   console.log(beforeWTON)
+    //   let beforeTON = await tonContract.balanceOf(MultiCont.address)
+    //   console.log(beforeTON)
+    //   await wtonContract.connect(testAccount).approve(MultiCont.address, wtonAmount);
+    //   await MultiCont.connect(testAccount).aggregate3(calls3);
+    //   let afterWTON = await wtonContract.balanceOf(testAccount.address)
+    //   console.log(afterWTON)
+    //   let afterTON = await tonContract.balanceOf(MultiCont.address)
+    //   console.log(afterTON)
+    //   expect(beforeWTON).to.be.gt(afterWTON);
+    //   expect(afterTON).to.be.gt(beforeTON);
+    // })
+
+    // it("MulticalTest (transferFrom, swapToTON, DepositToERC20", async () => {
+    //   await wtonContract.connect(testAccount).approve(MultiCont.address, wtonAmount);
+    //   await MultiCont.connect(testAccount).aggregate3(calls);
+    // })
+
+    // it("check balance WTON", async () => {
+    //   let checkWTON = await wtonContract.balanceOf(testAccount.address)
+    //   console.log(checkWTON)
+    // })
+
+    it("MulticallTest (depositERC20To)", async () => {
+      await MultiCont.connect(testAccount).aggregate3(call4);
+    })
+
+    it("check balance WTON", async () => {
+      let checkTON = await tonContract.balanceOf(MultiCont.address)
+      console.log(checkTON)
+    })
   });
 });
